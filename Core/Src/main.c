@@ -23,6 +23,8 @@
 /* USER CODE BEGIN Includes */
 #include "dht11.h"
 #include "MQ135.h"
+#include "sound.h"
+#include "stm32f1xx_hal_gpio.h"
 #include <stdio.h>
 #include <string.h>
 /* USER CODE END Includes */
@@ -44,6 +46,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
+ADC_HandleTypeDef hadc2;
 
 UART_HandleTypeDef huart1;
 
@@ -56,6 +59,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_ADC2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -99,11 +103,9 @@ int main(void)
   MX_GPIO_Init();
   MX_USART1_UART_Init();
   MX_ADC1_Init();
+  MX_ADC2_Init();
   /* USER CODE BEGIN 2 */
   DHT11_Init();
-
-  uint16_t mq135_raw = MQ135_ReadRaw();
-  float mq135_vol = (float)mq135_raw * 3.3f / 4095.0f;
 
   /* USER CODE END 2 */
 
@@ -111,18 +113,23 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    //sprintf((char *)aTXbuf,
-          //"MQ135 raw:%u, voltage:%.2f V\r\n",
-          //mq135_raw,
-          //mq135_vol);
-
-  //HAL_UART_Transmit(&huart1, aTXbuf, strlen((const char *)aTXbuf), 200);
-
-  //HAL_Delay(1000);
 
 
 
-  //温湿度读取
+
+
+
+
+
+
+
+
+    
+
+
+
+    /*
+  //==========================温湿度读取================================
     if (DHT11_Read_Data(&temperature, &humidity) == 0)
   {
       sprintf((char *)aTXbuf, "Temp:%d C, Humi:%d %%\r\n", temperature, humidity);
@@ -134,6 +141,45 @@ int main(void)
 
   HAL_UART_Transmit(&huart1, aTXbuf, strlen((const char *)aTXbuf), 200);
   HAL_Delay(2000);
+  //==========================空气质量读取================================
+  uint16_t mq135_raw = MQ135_ReadRaw();
+      float mq135_vol_f = MQ135_ReadVoltage();
+      
+      // 浮点数转毫伏(mV)整数，避开部分单片机 printf 不支持 %f 的坑
+      uint16_t mq135_mv = (uint16_t)(mq135_vol_f * 1000); 
+
+      // 覆盖之前的 aTXbuf 缓冲区，存入 MQ135 数据
+      sprintf((char*)aTXbuf, "[MQ135] Raw ADC:%d, Voltage:%d mV\r\n", mq135_raw, mq135_mv);
+      
+      // 发送 MQ135 数据
+      HAL_UART_Transmit(&huart1, aTXbuf, strlen((const char*)aTXbuf), 500);
+      HAL_Delay(2000);  // 延时 2 秒，避免发送过快
+      //=======================人体红外传感器读取=========================
+      GPIO_PinState motion_state = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_5); // 假设 HCSR501 连接在 GPIOB 的 PIN5
+      if (motion_state == GPIO_PIN_SET)
+      {
+          sprintf((char*)aTXbuf, "[HCSR501] Motion Detected: YES (Someone is here!)\r\n");
+      }
+      else
+      {
+          sprintf((char*)aTXbuf, "[HCSR501] Motion Detected: NO (Clear)\r\n");
+      }
+      HAL_UART_Transmit(&huart1, aTXbuf, strlen((const char*)aTXbuf), 500);
+      HAL_Delay(2000);  // 延时 2 秒，避免发送过快
+      //=======================声音传感器读取=========================
+      Sound_Update_dB(); // 耗时 50ms 更新数据
+      
+      // 注意：printf 打印浮点数可能需要环境支持，如果你的环境打不出 %f，可以转成整数
+      uint16_t db_int = (uint16_t)db_value; 
+      sprintf((char*)aTXbuf, "[SOUND] Level: %d dB\r\n", db_int);
+      HAL_UART_Transmit(&huart1, aTXbuf, strlen((const char*)aTXbuf), 500);
+
+      sprintf((char*)aTXbuf, "------------------------\r\n");
+      HAL_UART_Transmit(&huart1, aTXbuf, strlen((const char*)aTXbuf), 500);
+
+      HAL_Delay(1950); // 扣除声音采样的 50ms，维持约 2 秒总周期
+
+      */
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -180,7 +226,7 @@ void SystemClock_Config(void)
     Error_Handler();
   }
   PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC;
-  PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV2;
+  PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV6;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     Error_Handler();
@@ -235,6 +281,53 @@ static void MX_ADC1_Init(void)
 }
 
 /**
+  * @brief ADC2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC2_Init(void)
+{
+
+  /* USER CODE BEGIN ADC2_Init 0 */
+
+  /* USER CODE END ADC2_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC2_Init 1 */
+
+  /* USER CODE END ADC2_Init 1 */
+
+  /** Common config
+  */
+  hadc2.Instance = ADC2;
+  hadc2.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc2.Init.ContinuousConvMode = DISABLE;
+  hadc2.Init.DiscontinuousConvMode = DISABLE;
+  hadc2.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc2.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc2.Init.NbrOfConversion = 1;
+  if (HAL_ADC_Init(&hadc2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_4;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+  if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC2_Init 2 */
+
+  /* USER CODE END ADC2_Init 2 */
+
+}
+
+/**
   * @brief USART1 Initialization Function
   * @param None
   * @retval None
@@ -282,6 +375,7 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(DHT11_GPIO_Port, DHT11_Pin, GPIO_PIN_RESET);
@@ -292,6 +386,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(DHT11_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : HCSR501_Pin */
+  GPIO_InitStruct.Pin = HCSR501_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(HCSR501_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 

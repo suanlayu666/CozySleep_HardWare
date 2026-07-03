@@ -59,6 +59,8 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define DHT11_Pin GPIO_PIN_7
 #define DHT11_GPIO_Port GPIOA
+#define HCSR501_Pin GPIO_PIN_5
+#define HCSR501_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

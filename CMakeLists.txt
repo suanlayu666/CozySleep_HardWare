@@ -47,6 +47,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     Core/Src/dht11.c
     Core/Src/MQ135.c
+    Core/Src/sound.c
 )
 
 # Add include paths
