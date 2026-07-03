@@ -2,11 +2,12 @@
  
 void delay_us(uint32_t us)
 {
-    uint32_t delay = (HAL_RCC_GetHCLKFreq() / 4000000 * us);
+    // 把原来的 4000000 改成 10000000 或者 14000000
+    uint32_t delay = (HAL_RCC_GetHCLKFreq() / 10000000 * us); 
     while (delay--)
-	{
-		;
-	}
+    {
+        ;
+    }
 }
  
 /**
@@ -18,7 +19,7 @@ void DHT11_IO_OUT()
 {
 		GPIO_InitTypeDef  GPIO_InitStruct = {0};
  
-		GPIO_InitStruct.Pin = DHT11_Pin;
+		GPIO_InitStruct.Pin = GPIO_PIN_7;
 		GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 		GPIO_InitStruct.Pull = GPIO_PULLUP;
 		GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
@@ -33,7 +34,7 @@ void DHT11_IO_IN()
 {
 		GPIO_InitTypeDef  GPIO_InitStruct = {0};
  
-		GPIO_InitStruct.Pin  = DHT11_Pin;
+		GPIO_InitStruct.Pin  = GPIO_PIN_7;
 		GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
 		GPIO_InitStruct.Pull = GPIO_NOPULL;
 		GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
@@ -130,16 +131,16 @@ u8 DHT11_Read_Data(u8 *temp,u8 *humi)
 ////初始化DHT11的IO口 DQ 同时检测DHT11的存在
 ////返回1:不存在
 ////返回0:存在    	 
-//u8 DHT11_Init(void)
-//{
-//	RCC->APB2ENR|=1<<8;    //使能PORTG口时钟 
-//	GPIOG->CRH&=0XFFFF0FFF;//PORTG.11 推挽输出
-//	GPIOG->CRH|=0X00003000;
-//	GPIOG->ODR|=1<<11;      //输出1				    
-//	DHT11_Rst();
-//	return DHT11_Check();
-//}
- 
+u8 DHT11_Init(void)
+{
+    DHT11_IO_OUT();
+    DHT11_HIGH;
+    HAL_Delay(1000);
+
+    DHT11_Rst();
+
+    return DHT11_Check();
+}
  
  
  
