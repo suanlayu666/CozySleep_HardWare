@@ -49,6 +49,7 @@ ADC_HandleTypeDef hadc1;
 ADC_HandleTypeDef hadc2;
 
 UART_HandleTypeDef huart1;
+UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
 
@@ -60,6 +61,7 @@ static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_ADC2_Init(void);
+static void MX_USART3_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -104,6 +106,7 @@ int main(void)
   MX_USART1_UART_Init();
   MX_ADC1_Init();
   MX_ADC2_Init();
+  MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
   DHT11_Init();
 
@@ -113,18 +116,51 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+    // 1. 统一读取所有传感器数据
+      
+      // 读取温湿度 (原样保留你的读取逻辑)
+      uint8_t dht_status = DHT11_Read_Data(&temperature, &humidity);
+      
+      // 读取 MQ135 (转毫伏)
+      uint16_t mq135_raw = MQ135_ReadRaw();
+      uint16_t mq135_mv = (uint16_t)(MQ135_ReadVoltage() * 1000); 
+      
+      // 读取人体红外 (转换为 1 或 0)
+      uint8_t motion_flag = 0;
+      if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_5) == GPIO_PIN_SET) 
+      {
+          motion_flag = 1;
+      }
+      
+      // 读取声音分贝
+      Sound_Update_dB(); 
+      uint16_t db_int = (uint16_t)db_value;
+
+      // 2. 统一打包为 JSON 字符串格式
+      // 注意：末尾一定要加 \n，这是上位机区分每一帧数据的换行标志
+      if (dht_status == 0) 
+      {
+          sprintf((char*)aTXbuf, "{\"temp\":%d, \"humi\":%d, \"mq135_adc\":%d, \"mq135_mv\":%d, \"motion\":%d, \"sound_db\":%d}\n", 
+                  temperature, humidity, mq135_raw, mq135_mv, motion_flag, db_int);
+      }
+      else 
+      {
+          // 如果 DHT11 报错，可以发一个带 error 字段的 JSON
+          sprintf((char*)aTXbuf, "{\"error\": \"DHT11_Failed\", \"mq135_adc\":%d, \"motion\":%d, \"sound_db\":%d}\n", 
+                  mq135_raw, motion_flag, db_int);
+      }
+
+      // 3. 一次性发送到串口
+      //串口
+      HAL_UART_Transmit(&huart1, aTXbuf, strlen((const char*)aTXbuf), 500);
+      //蓝牙
+      HAL_UART_Transmit(&huart3, aTXbuf, strlen((const char*)aTXbuf), 500);
+
+      // 4. 统一延时 (维持 2 秒左右的采样率)
+      HAL_Delay(1950);
 
 
 
-
-
-
-
-
-
-
-
-    
 
 
 
@@ -357,6 +393,39 @@ static void MX_USART1_UART_Init(void)
   /* USER CODE BEGIN USART1_Init 2 */
 
   /* USER CODE END USART1_Init 2 */
+
+}
+
+/**
+  * @brief USART3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART3_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART3_Init 0 */
+
+  /* USER CODE END USART3_Init 0 */
+
+  /* USER CODE BEGIN USART3_Init 1 */
+
+  /* USER CODE END USART3_Init 1 */
+  huart3.Instance = USART3;
+  huart3.Init.BaudRate = 9600;
+  huart3.Init.WordLength = UART_WORDLENGTH_8B;
+  huart3.Init.StopBits = UART_STOPBITS_1;
+  huart3.Init.Parity = UART_PARITY_NONE;
+  huart3.Init.Mode = UART_MODE_TX_RX;
+  huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart3.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART3_Init 2 */
+
+  /* USER CODE END USART3_Init 2 */
 
 }
 
