@@ -176,24 +176,21 @@ ST-LINK 3.3V  -> 目标板 3.3V 参考电压
 
 如果 VS Code 连接失败，可以先用 STM32CubeProgrammer 测试 ST-LINK 是否能正常连接目标芯片。
 
-## 上位机方向
+## 配套上位机
 
-本项目的下位机输出是 JSON Lines，适合接入以下上位机方案：
+本项目为宿舍环境监控系统的 STM32 下位机部分，负责采集传感器数据并通过串口输出 JSON Lines。
 
-- Python 串口程序
-- Node.js / Electron
-- Tauri
-- Qt
-- WebSocket 网关
-- AI 分析服务
+配套上位机软件已经完成，详见：
 
-建议上位机按行读取串口数据，然后解析 JSON，例如：
+[suanlayu666/CozySleep_SoftWare](https://github.com/suanlayu666/CozySleep_SoftWare)
+
+上位机按行读取串口数据，然后解析 JSON，例如：
 
 ```json
 {"mq135_adc":2644,"motion":0,"sound_db":42}
 ```
 
-后续可以基于温湿度、空气质量、人体活动和噪声数据做宿舍环境评分、异常提醒、通风建议和 AI 总结。
+上位机负责数据接收、界面展示以及 AI 环境分析等功能。
 
 ## 当前状态与 TODO
 
@@ -205,8 +202,8 @@ ST-LINK 3.3V  -> 目标板 3.3V 参考电压
 - [x] HC-SR501 GPIO 读取
 - [ ] DHT11 稳定读取
 - [ ] GY-302 / BH1750 光照传感器接入
-- [ ] 上位机可视化程序
-- [ ] AI 环境分析与建议
+- [x] 配套上位机软件，详见 [CozySleep_SoftWare](https://github.com/suanlayu666/CozySleep_SoftWare)
+- [x] AI 环境分析与建议，上位机侧实现
 
 ## 备注
 
