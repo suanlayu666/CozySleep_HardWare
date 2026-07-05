@@ -9,7 +9,7 @@
 - 读取 MQ135 空气质量传感器模拟量
 - 读取咪头声音传感器模拟量，并估算声音分贝值
 - 读取 HC-SR501 人体红外传感器高低电平
-- 保留 DHT11 温湿度传感器驱动接口，当前仍在调试中
+- 读取 DHT11 温湿度传感器数据
 - 主循环统一打包 JSON，便于上位机按行解析
 
 ## 硬件平台
@@ -17,7 +17,7 @@
 | 类型 | 型号 / 模块 |
 | --- | --- |
 | MCU | STM32F103C8T6 |
-| 温湿度 | DHT11，当前待继续调试 |
+| 温湿度 | DHT11 |
 | 空气质量 | MQ135 |
 | 人体检测 | HC-SR501 |
 | 声音检测 | 咪头麦克风噪声传感器 |
@@ -31,7 +31,7 @@
 | --- | --- | --- | --- |
 | MQ135 AO | `PA3` | `ADC1_IN3` | 读取空气质量模拟量 |
 | 声音传感器 AO | `PA4` | `ADC2_IN4` | 读取声音传感器模拟量 |
-| DHT11 DATA | `PA7` | GPIO Output/Input | 单总线温湿度，当前待调试 |
+| DHT11 DATA | `PA7` | GPIO Output/Input | 单总线温湿度读取 |
 | HC-SR501 OUT | `PB5` | GPIO Input | 人体红外检测 |
 | USART1 TX | `PA9` | USART1_TX | 调试串口输出 |
 | USART1 RX | `PA10` | USART1_RX | 调试串口接收 |
@@ -86,7 +86,7 @@ DHT11 GND  -> GND
 DHT11 DATA -> PA7
 ```
 
-DHT11 当前保留在工程中，但读取稳定性仍在调试。主循环中如果读取失败，会输出带 `error` 字段的 JSON。
+DHT11 已接入主循环，正常情况下会输出温度 `temp` 和湿度 `humi` 字段；如果读取失败，会输出带 `error` 字段的 JSON。
 
 ## 串口输出格式
 
@@ -200,7 +200,7 @@ ST-LINK 3.3V  -> 目标板 3.3V 参考电压
 - [x] MQ135 ADC 读取
 - [x] 声音传感器 ADC 读取
 - [x] HC-SR501 GPIO 读取
-- [ ] DHT11 稳定读取
+- [x] DHT11 稳定读取
 - [ ] GY-302 / BH1750 光照传感器接入
 - [x] 配套上位机软件，详见 [CozySleep_SoftWare](https://github.com/suanlayu666/CozySleep_SoftWare)
 - [x] AI 环境分析与建议，上位机侧实现
